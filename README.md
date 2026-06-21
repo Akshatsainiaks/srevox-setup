@@ -536,6 +536,6 @@ All rights reserved. Srevox is proprietary software. The configurations, deploym
 
 ⚡ **Srevox** — Catch crashes before your users do.
 
-[🐳 Docker Hub](https://hub.docker.com/u/akshatsaini08) · [🐛 Issues](https://github.com/Akshatsainiaks/srevox/issues) · [⭐ Star](https://github.com/Akshatsainiaks/srevox)
+[🐳 Docker Hub](https://hub.docker.com/u/akshatsaini08) · [🐛 Issues](https://github.com/Akshatsainiaks/srevox-setup/issues) · [⭐ Star](https://github.com/Akshatsainiaks/srevox-setup)
 
 </div>
