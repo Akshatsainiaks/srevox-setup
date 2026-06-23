@@ -1,0 +1,87 @@
+# ═══════════════════════════════════════════════════════════════
+#  Srevox — K8s Watcher Agent
+#
+#  Deploy this into each cluster you want to monitor.
+#  Steps:
+#    1. Replace YOUR_SREVOX_REDIS_HOST with your Srevox server IP
+#    2. Replace YOUR_CLUSTER_UUID with the UUID from Dashboard → Clusters → Add
+#    3. Replace YOUR_CLUSTER_NAME with a friendly name
+#    4. kubectl apply -f srevox-agent.yml
+# ═══════════════════════════════════════════════════════════════
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: srevox-agent
+  namespace: kube-system
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: srevox-agent
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: srevox-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: srevox-agent
+subjects:
+  - kind: ServiceAccount
+    name: srevox-agent
+    namespace: kube-system
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: srevox-agent
+  namespace: kube-system
+  labels:
+    app: srevox-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: srevox-agent
+  template:
+    metadata:
+      labels:
+        app: srevox-agent
+    spec:
+      serviceAccountName: srevox-agent
+      containers:
+        - name: agent
+          image: akshatsaini08/srevox-agent:latest
+          imagePullPolicy: Always
+          env:
+            - name: REDIS_URL
+              value: "redis://YOUR_SREVOX_REDIS_HOST:6379"
+            - name: CLUSTER_ID
+              value: "YOUR_CLUSTER_UUID"
+            - name: CLUSTER_NAME
+              value: "YOUR_CLUSTER_NAME"
+            - name: WATCH_NAMESPACES
+              value: ""   # empty = watch all namespaces
+          resources:
+            requests:
+              cpu:    5m
+              memory: 16Mi
+            limits:
+              cpu:    50m
+              memory: 64Mi
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+      restartPolicy: Always

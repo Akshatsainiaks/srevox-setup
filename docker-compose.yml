@@ -1,9 +1,9 @@
 # ═══════════════════════════════════════════════════════════════
 #  Srevox — Self-Hosted
-#  https://github.com/Akshatsainiaks/srevox-setup
+#  https://github.com/Akshatsainiaks/srevox
 #
 #  Usage:
-#    curl -fsSL https://raw.githubusercontent.com/Akshatsainiaks/srevox-setup/main/setup.sh | bash
+#    curl -fsSL https://raw.githubusercontent.com/Akshatsainiaks/srevox/main/setup.sh | bash
 # ═══════════════════════════════════════════════════════════════
 
 services:
