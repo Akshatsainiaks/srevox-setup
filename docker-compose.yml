@@ -117,6 +117,28 @@ services:
     networks:
       - srevox
 
+  activity:
+    image: akshatsaini08/srevox-activity:latest
+    build:
+      context: ./apps/activity-service
+      dockerfile: Dockerfile
+    container_name: srevox-activity
+    restart: unless-stopped
+    ports:
+      - "${ACTIVITY_PORT:-5005}:5005"
+    env_file: .env
+    environment:
+      POSTGRES_HOST:     ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT:     ${POSTGRES_PORT:-5432}
+      POSTGRES_DB:       ${POSTGRES_DB:-srevox}
+      POSTGRES_USER:     ${POSTGRES_USER:-srevox}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - srevox
+
   frontend:
     image: akshatsaini08/srevox-frontend:latest
     container_name: srevox-frontend
@@ -126,8 +148,10 @@ services:
     env_file: .env
     environment:
       API_URL: http://api:4000
+      ACTIVITY_SERVICE_URL: http://activity:5005
     depends_on:
       - api
+      - activity
     networks:
       - srevox
 
