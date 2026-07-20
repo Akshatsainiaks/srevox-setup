@@ -6,7 +6,8 @@
 #    1. Replace YOUR_SREVOX_REDIS_HOST with your Srevox server IP
 #    2. Replace YOUR_CLUSTER_UUID with the UUID from Dashboard → Clusters → Add
 #    3. Replace YOUR_CLUSTER_NAME with a friendly name
-#    4. kubectl apply -f srevox-agent.yml
+#    4. Replace YOUR_AGENT_TOKEN with the agent token from Dashboard
+#    5. kubectl apply -f srevox-agent.yml
 # ═══════════════════════════════════════════════════════════════
 
 ---
@@ -70,6 +71,8 @@ spec:
               value: "YOUR_CLUSTER_UUID"
             - name: CLUSTER_NAME
               value: "YOUR_CLUSTER_NAME"
+            - name: AGENT_TOKEN
+              value: "YOUR_AGENT_TOKEN"
             - name: WATCH_NAMESPACES
               value: ""   # empty = watch all namespaces
           resources:

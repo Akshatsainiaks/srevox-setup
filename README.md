@@ -294,7 +294,8 @@ kubectl apply -f \
 kubectl set env deployment/srevox-agent -n kube-system \
   REDIS_URL=redis://YOUR_SREVOX_IP:6379 \
   CLUSTER_ID=YOUR_UUID_FROM_DASHBOARD \
-  CLUSTER_NAME=production
+  CLUSTER_NAME=production \
+  AGENT_TOKEN=YOUR_AGENT_TOKEN_FROM_DASHBOARD
 
 # 3. Verify it's watching
 kubectl logs -n kube-system deployment/srevox-agent -f

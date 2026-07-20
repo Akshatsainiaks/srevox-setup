@@ -44,7 +44,7 @@ services:
       - srevox
 
   api:
-    image: akshatsaini08/srevox-api:v0.1.18
+    image: akshatsaini08/srevox-api:v0.1.19
     build:
       context: ./apps/api
       dockerfile: Dockerfile
@@ -71,7 +71,7 @@ services:
       - srevox
 
   worker:
-    image: akshatsaini08/srevox-worker:v0.1.18
+    image: akshatsaini08/srevox-worker:v0.1.19
     build:
       context: ./apps/alert-worker
       dockerfile: Dockerfile
@@ -96,7 +96,7 @@ services:
       - srevox
 
   ai:
-    image: akshatsaini08/srevox-ai:v0.1.18
+    image: akshatsaini08/srevox-ai:v0.1.19
     build:
       context: ./apps/backend
       dockerfile: Dockerfile
@@ -118,7 +118,7 @@ services:
       - srevox
 
   activity:
-    image: akshatsaini08/srevox-activity:v0.1.18
+    image: akshatsaini08/srevox-activity:v0.1.19
     build:
       context: ./apps/activity-service
       dockerfile: Dockerfile
@@ -140,7 +140,7 @@ services:
       - srevox
 
   frontend:
-    image: akshatsaini08/srevox-frontend:v0.1.18
+    image: akshatsaini08/srevox-frontend:v0.1.19
     container_name: srevox-frontend
     restart: unless-stopped
     ports:
