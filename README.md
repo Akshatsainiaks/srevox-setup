@@ -125,7 +125,7 @@ flowchart LR
 If you prefer deploying Srevox directly to a Kubernetes cluster (`EKS`, `GKE`, `AKS`, `minikube`, `k3s`), use our official Helm Chart:
 
 ```bash
-# 1. Download/Clone Helm Chart v0.1.26
+# 1. Download/Clone Helm Chart v0.1.27
 curl -fsSL https://raw.githubusercontent.com/Akshatsainiaks/srevox-setup/main/charts/srevox/Chart.yaml
 
 # 2. Install via Helm
@@ -135,6 +135,9 @@ helm install srevox ./charts/srevox \
 
 # 3. Upgrade via Helm (Zero downtime for future releases)
 helm upgrade srevox ./charts/srevox --namespace srevox --reuse-values
+
+# 4. Rollback via Helm (1-Click revert to previous version)
+helm rollback srevox 1 --namespace srevox
 ```
 
 ---
