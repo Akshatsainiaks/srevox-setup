@@ -120,6 +120,25 @@ flowchart LR
     style E fill:#16a34a,stroke:#22c55e,color:#ffffff
 ```
 
+### ☸️ Kubernetes Installation via Helm Chart (Alternative)
+
+If you prefer deploying Srevox directly to a Kubernetes cluster (`EKS`, `GKE`, `AKS`, `minikube`, `k3s`), use our official Helm Chart:
+
+```bash
+# 1. Download/Clone Helm Chart v0.1.26
+curl -fsSL https://raw.githubusercontent.com/Akshatsainiaks/srevox-setup/main/charts/srevox/Chart.yaml
+
+# 2. Install via Helm
+helm install srevox ./charts/srevox \
+  --namespace srevox --create-namespace \
+  --set postgres.password="MySecurePassword123!"
+
+# 3. Upgrade via Helm (Zero downtime for future releases)
+helm upgrade srevox ./charts/srevox --namespace srevox --reuse-values
+```
+
+---
+
 **1️⃣ One-command setup**
 
 ```bash

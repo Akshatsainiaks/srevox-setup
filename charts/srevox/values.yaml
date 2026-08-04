@@ -1,0 +1,97 @@
+# ═══════════════════════════════════════════════════════════════
+#  Srevox Helm Chart Default Configuration
+#  Version: 0.1.26
+# ═══════════════════════════════════════════════════════════════
+
+global:
+  backendSecretKey: "change_me_in_production_min_32_chars"
+  encryptionKey: "change_me_32_chars_exactly_here_"
+  frontendUrl: "http://localhost:3000"
+
+# ── Image Configuration ──────────────────────────────────────
+image:
+  pullPolicy: IfNotPresent
+  registry: docker.io
+  repositoryOwner: akshatsaini08
+  tag: 0.1.26
+
+# ── Core Services Configuration ──────────────────────────────
+api:
+  replicaCount: 1
+  port: 4000
+  image: akshatsaini08/srevox-api:0.1.26
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+frontend:
+  replicaCount: 1
+  port: 3000
+  image: akshatsaini08/srevox-frontend:0.1.26
+  service:
+    type: ClusterIP
+    port: 3000
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+worker:
+  replicaCount: 1
+  port: 3001
+  image: akshatsaini08/srevox-worker:0.1.26
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+activity:
+  replicaCount: 1
+  port: 5005
+  image: akshatsaini08/srevox-activity:0.1.26
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# ── Built-In Infrastructure Toggles ──────────────────────────
+postgres:
+  enabled: true
+  host: srevox-postgres
+  port: 5432
+  database: srevox
+  username: srevox
+  password: "srevox_dev_password_change_me"
+  persistence:
+    enabled: true
+    size: 10Gi
+
+redis:
+  enabled: true
+  host: srevox-redis
+  port: 6379
+
+# ── Ingress Configuration ────────────────────────────────────
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  hosts:
+    - host: srevox.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []

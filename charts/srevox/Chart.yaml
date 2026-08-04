@@ -1,0 +1,15 @@
+apiVersion: v2
+name: srevox
+description: Srevox - Enterprise Site Reliability Engineering (SRE) & Incident Intelligence Platform
+type: application
+version: 0.1.26
+appVersion: 0.1.26
+keywords:
+  - sre
+  - observability
+  - monitoring
+  - incidents
+  - kubernetes
+maintainers:
+  - name: Srevox Engineering
+    email: support@srevox.com

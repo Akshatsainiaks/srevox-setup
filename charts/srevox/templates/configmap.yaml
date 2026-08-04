@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "srevox.fullname" . }}-config
+  labels:
+    {{- include "srevox.labels" . | nindent 4 }}
+data:
+  POSTGRES_HOST: {{ .Values.postgres.host | quote }}
+  POSTGRES_PORT: {{ .Values.postgres.port | quote }}
+  POSTGRES_DB: {{ .Values.postgres.database | quote }}
+  POSTGRES_USER: {{ .Values.postgres.username | quote }}
+  REDIS_URL: "redis://{{ .Values.redis.host }}:{{ .Values.redis.port }}"
+  FRONTEND_URL: {{ .Values.global.frontendUrl | quote }}
+  API_URL: "http://{{ include "srevox.fullname" . }}-api:4000"
+  ACTIVITY_SERVICE_URL: "http://{{ include "srevox.fullname" . }}-activity:5005"
