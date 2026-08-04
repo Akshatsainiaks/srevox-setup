@@ -122,7 +122,7 @@ flowchart LR
 
 ### ☸️ Kubernetes Installation via Helm Chart (Alternative)
 
-If you prefer deploying Srevox directly to a Kubernetes cluster (`EKS`, `GKE`, `AKS`, `minikube`, `k3s`), use our official Helm Chart:-
+If you prefer deploying Srevox directly to a Kubernetes cluster (`EKS`, `GKE`, `AKS`, `minikube`, `k3s`), use our official Helm Chart:
 
 ```bash
 # 1. Download/Clone Helm Chart v0.1.26
