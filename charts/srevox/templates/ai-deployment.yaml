@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "srevox.fullname" . }}-ai
+  labels:
+    {{- include "srevox.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ai
+spec:
+  replicas: {{ .Values.ai.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "srevox.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: ai
+  template:
+    metadata:
+      labels:
+        {{- include "srevox.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: ai
+    spec:
+      containers:
+        - name: ai
+          image: "{{ .Values.ai.image }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "srevox.fullname" . }}-config
+            - secretRef:
+                name: {{ include "srevox.fullname" . }}-secrets
+          resources:
+            {{- toYaml .Values.ai.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "srevox.fullname" . }}-ai
+  labels:
+    {{- include "srevox.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ai
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "srevox.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: ai

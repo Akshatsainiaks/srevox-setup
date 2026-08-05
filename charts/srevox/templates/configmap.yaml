@@ -11,5 +11,12 @@ data:
   POSTGRES_USER: {{ .Values.postgres.username | quote }}
   REDIS_URL: "redis://{{ include "srevox.fullname" . }}-redis:{{ .Values.redis.port }}"
   FRONTEND_URL: {{ .Values.global.frontendUrl | quote }}
+  NEXT_PUBLIC_API_URL: {{ .Values.global.nextPublicApiUrl | quote }}
   API_URL: "http://{{ include "srevox.fullname" . }}-api:4000"
-  ACTIVITY_SERVICE_URL: "http://{{ include "srevox.fullname" . }}-activity:5005"
+  AI_SERVICE_URL: "http://{{ include "srevox.fullname" . }}-ai:8000"
+  AI_PROVIDER: {{ .Values.ai.provider | quote }}
+  OLLAMA_URL: {{ .Values.ai.ollamaUrl | quote }}
+  SMTP_HOST: {{ .Values.smtp.host | quote }}
+  SMTP_PORT: {{ .Values.smtp.port | quote }}
+  SMTP_USER: {{ .Values.smtp.user | quote }}
+  SMTP_FROM: {{ .Values.smtp.from | quote }}

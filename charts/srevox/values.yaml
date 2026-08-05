@@ -1,25 +1,26 @@
 # ═══════════════════════════════════════════════════════════════
-#  Srevox Helm Chart Default Configuration
-#  Version: 0.1.26
+#  Srevox Helm Chart Production Configuration
+#  Version: 0.1.27
 # ═══════════════════════════════════════════════════════════════
 
 global:
   backendSecretKey: "change_me_in_production_min_32_chars"
   encryptionKey: "change_me_32_chars_exactly_here_"
   frontendUrl: "http://localhost:3000"
+  nextPublicApiUrl: "http://localhost:4000"
 
 # ── Image Configuration ──────────────────────────────────────
 image:
   pullPolicy: IfNotPresent
   registry: docker.io
   repositoryOwner: akshatsaini08
-  tag: 0.1.26
+  tag: 0.1.28
 
 # ── Core Services Configuration ──────────────────────────────
 api:
   replicaCount: 1
   port: 4000
-  image: akshatsaini08/srevox-api:0.1.26
+  image: akshatsaini08/srevox-api:0.1.28
   resources:
     limits:
       cpu: 500m
@@ -31,7 +32,7 @@ api:
 frontend:
   replicaCount: 1
   port: 3000
-  image: akshatsaini08/srevox-frontend:0.1.26
+  image: akshatsaini08/srevox-frontend:0.1.28
   service:
     type: ClusterIP
     port: 3000
@@ -46,7 +47,7 @@ frontend:
 worker:
   replicaCount: 1
   port: 3001
-  image: akshatsaini08/srevox-worker:0.1.26
+  image: akshatsaini08/srevox-worker:0.1.28
   resources:
     limits:
       cpu: 300m
@@ -55,17 +56,42 @@ worker:
       cpu: 50m
       memory: 64Mi
 
-activity:
+ai:
   replicaCount: 1
-  port: 5005
-  image: akshatsaini08/srevox-activity:0.1.26
+  port: 8000
+  image: akshatsaini08/srevox-ai:0.1.28
+  provider: "groq" # Options: groq | openai | anthropic | ollama
+  groqApiKey: ""
+  openaiApiKey: ""
+  anthropicApiKey: ""
+  ollamaUrl: "http://localhost:11434"
   resources:
     limits:
-      cpu: 300m
-      memory: 256Mi
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+agent:
+  enabled: true
+  image: akshatsaini08/srevox-agent:latest
+  clusterName: "default-cluster"
+  resources:
+    limits:
+      cpu: 200m
+      memory: 128Mi
     requests:
       cpu: 50m
-      memory: 64Mi
+      memory: 32Mi
+
+# ── SMTP Mail Settings ───────────────────────────────────────
+smtp:
+  host: ""
+  port: 587
+  user: ""
+  password: ""
+  from: "notifications@srevox.local"
 
 # ── Built-In Infrastructure Toggles ──────────────────────────
 postgres:

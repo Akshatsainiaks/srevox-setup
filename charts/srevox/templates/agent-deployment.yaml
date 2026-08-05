@@ -1,0 +1,61 @@
+{{- if .Values.agent.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "srevox.fullname" . }}-agent
+  labels:
+    {{- include "srevox.labels" . | nindent 4 }}
+    app.kubernetes.io/component: agent
+spec:
+  selector:
+    matchLabels:
+      {{- include "srevox.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: agent
+  template:
+    metadata:
+      labels:
+        {{- include "srevox.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: agent
+    spec:
+      serviceAccountName: {{ include "srevox.fullname" . }}-agent-sa
+      containers:
+        - name: agent
+          image: "{{ .Values.agent.image }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: SREVOX_API_URL
+              value: "http://{{ include "srevox.fullname" . }}-api:4000"
+            - name: CLUSTER_NAME
+              value: {{ .Values.agent.clusterName | quote }}
+          resources:
+            {{- toYaml .Values.agent.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "srevox.fullname" . }}-agent-sa
+  labels:
+    {{- include "srevox.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "srevox.fullname" . }}-agent-role
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "events", "namespaces"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "srevox.fullname" . }}-agent-binding
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "srevox.fullname" . }}-agent-sa
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ include "srevox.fullname" . }}-agent-role
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}
