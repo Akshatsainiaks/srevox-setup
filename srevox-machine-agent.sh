@@ -50,19 +50,24 @@ fi
 get_top_processes_json() {
   local sort_flag="$1"
   local ps_out
-  ps_out=$(ps -eo pid,comm,%cpu,%mem --sort="$sort_flag" --no-headers 2>/dev/null | head -5)
+  ps_out=$(ps -eo pid,%cpu,%mem,comm --sort="$sort_flag" --no-headers 2>/dev/null | head -5)
   if [ -z "$ps_out" ]; then
     echo "[]"
     return
   fi
   local json="["
   local count=0
-  while read -r r_pid r_comm r_cpu r_mem; do
+  while read -r r_pid r_cpu r_mem r_comm; do
     [ -z "$r_pid" ] && continue
+    [[ "$r_pid" =~ ^[0-9]+$ ]] || continue
     local clean_comm
-    clean_comm=$(echo "$r_comm" | tr -d '"\\')
+    clean_comm=$(echo "$r_comm" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr -d '\r\n')
+    local clean_cpu
+    clean_cpu=$(echo "$r_cpu" | tr -cd '0-9.')
+    local clean_mem
+    clean_mem=$(echo "$r_mem" | tr -cd '0-9.')
     [ $count -gt 0 ] && json="${json},"
-    json="${json}{\"pid\":$r_pid,\"name\":\"$clean_comm\",\"cpu_pct\":${r_cpu:-0},\"mem_pct\":${r_mem:-0}}"
+    json="${json}{\"pid\":${r_pid:-0},\"name\":\"${clean_comm:-unknown}\",\"cpu_pct\":${clean_cpu:-0},\"mem_pct\":${clean_mem:-0}}"
     count=$((count + 1))
   done <<< "$ps_out"
   json="${json}]"
