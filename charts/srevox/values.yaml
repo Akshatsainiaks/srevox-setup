@@ -14,13 +14,13 @@ image:
   pullPolicy: IfNotPresent
   registry: docker.io
   repositoryOwner: akshatsaini08
-  tag: 0.1.32
+  tag: 0.1.33
 
 # ── Core Services Configuration ──────────────────────────────
 api:
   replicaCount: 1
   port: 4000
-  image: akshatsaini08/srevox-api:0.1.32
+  image: akshatsaini08/srevox-api:0.1.33
   resources:
     limits:
       cpu: 500m
@@ -32,7 +32,7 @@ api:
 frontend:
   replicaCount: 1
   port: 3000
-  image: akshatsaini08/srevox-frontend:0.1.32
+  image: akshatsaini08/srevox-frontend:0.1.33
   service:
     type: ClusterIP
     port: 3000
@@ -47,7 +47,7 @@ frontend:
 worker:
   replicaCount: 1
   port: 3001
-  image: akshatsaini08/srevox-worker:0.1.32
+  image: akshatsaini08/srevox-worker:0.1.33
   resources:
     limits:
       cpu: 300m
@@ -59,7 +59,7 @@ worker:
 ai:
   replicaCount: 1
   port: 8000
-  image: akshatsaini08/srevox-ai:0.1.32
+  image: akshatsaini08/srevox-ai:0.1.33
   provider: "groq" # Options: groq | openai | anthropic | ollama
   groqApiKey: ""
   openaiApiKey: ""
