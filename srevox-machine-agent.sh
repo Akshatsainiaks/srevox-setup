@@ -50,50 +50,77 @@ fi
 get_top_processes_json() {
   local sort_flag="$1"
   local ps_out
-  ps_out=$(ps -eo pid,%cpu,%mem,comm --sort="$sort_flag" --no-headers 2>/dev/null | head -5)
+  ps_out=$(ps -eo pid,comm,%cpu,%mem --sort="$sort_flag" --no-headers 2>/dev/null | head -5)
   if [ -z "$ps_out" ]; then
     echo "[]"
     return
   fi
   local json="["
   local count=0
-  while read -r r_pid r_cpu r_mem r_comm; do
+  while read -r r_pid r_comm r_cpu r_mem; do
     [ -z "$r_pid" ] && continue
-    [[ "$r_pid" =~ ^[0-9]+$ ]] || continue
     local clean_comm
-    clean_comm=$(echo "$r_comm" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr -d '\r\n')
-    local clean_cpu
-    clean_cpu=$(echo "$r_cpu" | tr -cd '0-9.')
-    local clean_mem
-    clean_mem=$(echo "$r_mem" | tr -cd '0-9.')
+    clean_comm=$(echo "$r_comm" | tr -d '"\\')
     [ $count -gt 0 ] && json="${json},"
-    json="${json}{\"pid\":${r_pid:-0},\"name\":\"${clean_comm:-unknown}\",\"cpu_pct\":${clean_cpu:-0},\"mem_pct\":${clean_mem:-0}}"
+    json="${json}{\"pid\":$r_pid,\"name\":\"$clean_comm\",\"cpu_pct\":${r_cpu:-0},\"mem_pct\":${r_mem:-0}}"
     count=$((count + 1))
   done <<< "$ps_out"
   json="${json}]"
   echo "$json"
 }
 
+get_net_bytes() {
+  if [ -f /proc/net/dev ]; then
+    awk '
+      NR > 2 {
+        gsub(":", " ");
+        if ($1 != "lo") {
+          rx += $2;
+          tx += $10;
+        }
+      }
+      END {
+        printf "%.0f %.0f", (rx ? rx : 0), (tx ? tx : 0)
+      }
+    ' /proc/net/dev 2>/dev/null || echo "0 0"
+  else
+    echo "0 0"
+  fi
+}
+
 get_metrics_json() {
+  local passed_rx_sec="$1"
+  local passed_tx_sec="$2"
+
   HOSTNAME=$(hostname 2>/dev/null || echo "unknown-host")
   IP_ADDR=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")
   OS=$(uname -s 2>/dev/null || echo "Linux")
   ARCH=$(uname -m 2>/dev/null || echo "x86_64")
   CPU_CORES=$(nproc 2>/dev/null || grep -c ^processor /proc/cpuinfo 2>/dev/null || echo 1)
 
-  # Meminfo
-  MEM_TOTAL_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
-  MEM_AVAIL_KB=$(grep MemAvailable /proc/meminfo | awk '{print $2}')
-  if [ -z "$MEM_AVAIL_KB" ]; then
-    MEM_FREE_KB=$(grep MemFree /proc/meminfo | awk '{print $2}')
-    MEM_BUFFERS_KB=$(grep ^Buffers /proc/meminfo | awk '{print $2}')
-    MEM_CACHED_KB=$(grep ^Cached /proc/meminfo | awk '{print $2}')
-    MEM_AVAIL_KB=$((MEM_FREE_KB + MEM_BUFFERS_KB + MEM_CACHED_KB))
+  # Meminfo (safe parsing preventing negative percentages)
+  MEM_TOTAL_KB=$(awk '/^MemTotal:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)
+  MEM_AVAIL_KB=$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo "")
+  if [ -z "$MEM_AVAIL_KB" ] || [ "$MEM_AVAIL_KB" -eq 0 ] 2>/dev/null; then
+    MEM_FREE_KB=$(awk '/^MemFree:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)
+    MEM_BUFFERS_KB=$(awk '/^Buffers:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)
+    MEM_CACHED_KB=$(awk '/^Cached:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)
+    MEM_AVAIL_KB=$(( ${MEM_FREE_KB:-0} + ${MEM_BUFFERS_KB:-0} + ${MEM_CACHED_KB:-0} ))
   fi
-  MEM_USED_KB=$((MEM_TOTAL_KB - MEM_AVAIL_KB))
-  MEM_TOTAL_BYTES=$((MEM_TOTAL_KB * 1024))
-  MEM_USED_BYTES=$((MEM_USED_KB * 1024))
-  MEM_PCT=$(awk "BEGIN {printf \"%.2f\", ($MEM_USED_KB / $MEM_TOTAL_KB) * 100}")
+  if [ "$MEM_AVAIL_KB" -gt "$MEM_TOTAL_KB" ] 2>/dev/null; then
+    MEM_AVAIL_KB="$MEM_TOTAL_KB"
+  fi
+  MEM_USED_KB=$(( ${MEM_TOTAL_KB:-0} - ${MEM_AVAIL_KB:-0} ))
+  if [ "$MEM_USED_KB" -lt 0 ] 2>/dev/null; then
+    MEM_USED_KB=0
+  fi
+  MEM_TOTAL_BYTES=$(( ${MEM_TOTAL_KB:-0} * 1024 ))
+  MEM_USED_BYTES=$(( ${MEM_USED_KB:-0} * 1024 ))
+  if [ "$MEM_TOTAL_KB" -gt 0 ] 2>/dev/null; then
+    MEM_PCT=$(awk "BEGIN {printf \"%.2f\", ($MEM_USED_KB / $MEM_TOTAL_KB) * 100}")
+  else
+    MEM_PCT="0.00"
+  fi
 
   # Disk info (root partition /)
   DISK_INFO=$(df -B1 / | tail -n 1)
@@ -102,18 +129,23 @@ get_metrics_json() {
   DISK_PCT=$(echo "$DISK_INFO" | awk '{print $5}' | tr -d '%')
 
   # Load averages
-  LOADS=$(cat /proc/loadavg)
+  LOADS=$(cat /proc/loadavg 2>/dev/null || echo "0 0 0")
   LOAD_1M=$(echo "$LOADS" | awk '{print $1}')
   LOAD_5M=$(echo "$LOADS" | awk '{print $2}')
   LOAD_15M=$(echo "$LOADS" | awk '{print $3}')
 
+  # Network baseline sample before sleep
+  NET_S1=($(get_net_bytes))
+
   # CPU usage sample over 0.5 sec
-  CPU_PREV=($(grep '^cpu ' /proc/stat))
+  CPU_PREV=($(grep '^cpu ' /proc/stat 2>/dev/null || echo ""))
   sleep 0.5
-  CPU_NEXT=($(grep '^cpu ' /proc/stat))
+  CPU_NEXT=($(grep '^cpu ' /proc/stat 2>/dev/null || echo ""))
+
+  NET_S2=($(get_net_bytes))
   
-  PREV_IDLE=$((CPU_PREV[4] + CPU_PREV[5]))
-  NEXT_IDLE=$((CPU_NEXT[4] + CPU_NEXT[5]))
+  PREV_IDLE=$(( ${CPU_PREV[4]:-0} + ${CPU_PREV[5]:-0} ))
+  NEXT_IDLE=$(( ${CPU_NEXT[4]:-0} + ${CPU_NEXT[5]:-0} ))
   
   PREV_TOTAL=0
   for i in "${CPU_PREV[@]:1}"; do PREV_TOTAL=$((PREV_TOTAL + i)); done
@@ -123,10 +155,23 @@ get_metrics_json() {
   TOTAL_DIFF=$((NEXT_TOTAL - PREV_TOTAL))
   IDLE_DIFF=$((NEXT_IDLE - PREV_IDLE))
   
-  if [ "$TOTAL_DIFF" -gt 0 ]; then
+  if [ "$TOTAL_DIFF" -gt 0 ] 2>/dev/null; then
     CPU_PCT=$(awk "BEGIN {printf \"%.2f\", (($TOTAL_DIFF - $IDLE_DIFF) / $TOTAL_DIFF) * 100}")
   else
     CPU_PCT="0.00"
+  fi
+
+  # Calculate network rate in bytes per second
+  if [ -n "$passed_rx_sec" ] && [ -n "$passed_tx_sec" ]; then
+    NET_RX_SEC="$passed_rx_sec"
+    NET_TX_SEC="$passed_tx_sec"
+  else
+    DIFF_RX=$(( ${NET_S2[0]:-0} - ${NET_S1[0]:-0} ))
+    DIFF_TX=$(( ${NET_S2[1]:-0} - ${NET_S1[1]:-0} ))
+    [ "$DIFF_RX" -lt 0 ] && DIFF_RX=0
+    [ "$DIFF_TX" -lt 0 ] && DIFF_TX=0
+    NET_RX_SEC=$((DIFF_RX * 2))
+    NET_TX_SEC=$((DIFF_TX * 2))
   fi
 
   COLLECTED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%dT%H:%M:%SZ")
@@ -147,6 +192,8 @@ get_metrics_json() {
   "total_disk_bytes": $DISK_TOTAL_BYTES,
   "disk_used_bytes": $DISK_USED_BYTES,
   "disk_usage_pct": $DISK_PCT,
+  "network_rx_bytes_sec": ${NET_RX_SEC:-0},
+  "network_tx_bytes_sec": ${NET_TX_SEC:-0},
   "load_avg_1m": $LOAD_1M,
   "load_avg_5m": $LOAD_5M,
   "load_avg_15m": $LOAD_15M,
@@ -209,9 +256,35 @@ flush_buffer() {
 }
 
 echo "Starting Srevox Machine Ingestion Loop to ${SERVER_URL}..."
+PREV_NET_STATS=($(get_net_bytes))
+PREV_NET_RX=${PREV_NET_STATS[0]:-0}
+PREV_NET_TX=${PREV_NET_STATS[1]:-0}
+PREV_NET_TIME=$(date +%s)
+
 while true; do
   flush_buffer
-  PAYLOAD=$(get_metrics_json)
+
+  NOW_NET_TIME=$(date +%s)
+  NOW_NET_STATS=($(get_net_bytes))
+  CURR_NET_RX=${NOW_NET_STATS[0]:-0}
+  CURR_NET_TX=${NOW_NET_STATS[1]:-0}
+
+  TIME_DELTA=$((NOW_NET_TIME - PREV_NET_TIME))
+  [ "$TIME_DELTA" -le 0 ] && TIME_DELTA=1
+
+  DIFF_RX=$((CURR_NET_RX - PREV_NET_RX))
+  DIFF_TX=$((CURR_NET_TX - PREV_NET_TX))
+  [ "$DIFF_RX" -lt 0 ] && DIFF_RX=0
+  [ "$DIFF_TX" -lt 0 ] && DIFF_TX=0
+
+  CALC_RX_SEC=$((DIFF_RX / TIME_DELTA))
+  CALC_TX_SEC=$((DIFF_TX / TIME_DELTA))
+
+  PREV_NET_RX=$CURR_NET_RX
+  PREV_NET_TX=$CURR_NET_TX
+  PREV_NET_TIME=$NOW_NET_TIME
+
+  PAYLOAD=$(get_metrics_json "$CALC_RX_SEC" "$CALC_TX_SEC")
   if ! send_payload "$PAYLOAD"; then
     append_buffer "$PAYLOAD"
   fi
