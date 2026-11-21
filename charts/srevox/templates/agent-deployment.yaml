@@ -1,12 +1,19 @@
-{{- if .Values.agent.enabled }}
+{{- /* The agent needs a cluster ID created in the Srevox UI first; it is
+       skipped until agent.clusterId is set so a fresh `helm install` works. */}}
+{{- if and .Values.agent.enabled .Values.agent.clusterId }}
 apiVersion: apps/v1
-kind: DaemonSet
+# A single replica: the watcher streams pods for the WHOLE cluster, so a
+# DaemonSet (one per node) would publish every crash N times.
+kind: Deployment
 metadata:
   name: {{ include "srevox.fullname" . }}-agent
   labels:
     {{- include "srevox.labels" . | nindent 4 }}
     app.kubernetes.io/component: agent
 spec:
+  replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "srevox.selectorLabels" . | nindent 6 }}
@@ -23,10 +30,19 @@ spec:
           image: "{{ .Values.agent.image }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
-            - name: SREVOX_API_URL
+            # Names must match what apps/watcher/cmd/watcher/main.go reads.
+            - name: API_URL
               value: "http://{{ include "srevox.fullname" . }}-api:4000"
+            - name: REDIS_URL
+              value: "redis://{{ include "srevox.fullname" . }}-redis:{{ .Values.redis.port | default 6379 }}"
+            - name: CLUSTER_ID
+              value: {{ .Values.agent.clusterId | quote }}
             - name: CLUSTER_NAME
               value: {{ .Values.agent.clusterName | quote }}
+            - name: AGENT_TOKEN
+              value: {{ .Values.agent.agentToken | quote }}
+            - name: WATCH_NAMESPACES
+              value: {{ .Values.agent.watchNamespaces | default "" | quote }}
           resources:
             {{- toYaml .Values.agent.resources | nindent 12 }}
 ---
@@ -45,6 +61,9 @@ rules:
   - apiGroups: [""]
     resources: ["pods", "pods/log", "events", "namespaces"]
     verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
